@@ -1,0 +1,221 @@
+{% extends 'carpool_dvm/base.html' %}
+
+{% block title %}Passenger Home - Carpool DVM{% endblock %}
+
+{% block extra_css %}
+<style>
+    .home-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+
+    /* Override base colors to a Teal/Emerald passenger theme */
+    :root {
+        --primary: #0d9488;
+        --primary-hover: #0f766e;
+        --accent: #2dd4bf;
+    }
+
+    .tabs {
+        display: flex;
+        gap: 1rem;
+        background-color: var(--card-bg);
+        padding: 0.5rem;
+        border-radius: 0.75rem;
+        border: 1px solid var(--border);
+        width: fit-content;
+        flex-wrap: wrap;
+    }
+
+    .tab-btn {
+        padding: 0.5rem 1.5rem;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.2s;
+        color: var(--text-muted);
+        border: none;
+        background: none;
+    }
+
+    .tab-btn.active {
+        background-color: var(--primary);
+        color: white;
+    }
+
+    .tab-content {
+        display: none;
+        animation: fadeIn 0.3s ease-in-out;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .profile-card {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 2rem;
+        align-items: center;
+    }
+
+    .avatar-large {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--accent), var(--primary));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        font-weight: 700;
+        color: white;
+    }
+
+    .trip-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .trip-card {
+        padding: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-left: 4px solid var(--primary);
+    }
+
+    .trip-card.active-trip {
+        border-left-color: var(--accent);
+    }
+
+    .badge {
+        padding: 0.25rem 0.5rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .badge-passenger {
+        background: rgba(45, 212, 191, 0.2);
+        color: var(--accent);
+    }
+
+    .badge-active {
+        background: rgba(13, 148, 136, 0.2);
+        color: var(--primary);
+    }
+
+    .badge-past {
+        background: rgba(148, 163, 184, 0.2);
+        color: var(--text-muted);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="home-header">
+    <h1>Welcome Passenger, {{ user.username|default:"Mate" }}!</h1>
+    <a href="{% url 'request_trip_view' %}" class="btn btn-primary"
+        style="text-decoration: none; box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);">
+        <span>🚕</span> Request a Ride
+    </a>
+</div>
+
+<div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('profile')">Profile</button>
+    <button class="tab-btn" onclick="switchTab('active-trips')">Active Requests</button>
+    <button class="tab-btn" onclick="switchTab('past-trips')">Past Rides</button>
+</div>
+
+<div id="profile" class="tab-content active" style="margin-top: 2rem;">
+    <div class="card profile-card">
+        <div class="avatar-large">
+            {{ user.username.0|upper|default:"P" }}
+        </div>
+        <div>
+            <h2>{{ user.full_name|default:user.username|default:"Passenger Profile" }}</h2>
+            <p style="color: var(--text-muted);">{{ user.email|default:"passenger@example.com" }}</p>
+            <div style="margin-top: 1rem; display: flex; gap: 1rem;">
+                <div class="card" style="padding: 0.75rem; text-align: center; flex: 1;">
+                    <div style="font-size: 1.5rem; font-weight: 700;">12</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">Rides Taken</div>
+                </div>
+                <div class="card" style="padding: 0.75rem; text-align: center; flex: 1;">
+                    <div style="font-size: 1.5rem; font-weight: 700;">4.85</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">Passenger Rating</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="active-trips" class="tab-content" style="margin-top: 2rem;">
+    <div class="trip-list">
+        <!-- Active Trip Example -->
+        <div class="card trip-card active-trip">
+            <div>
+                <span class="badge badge-active">Finding Match</span>
+                <h3 style="margin-top: 0.5rem;">To: City Center</h3>
+                <p style="font-size: 0.875rem; color: var(--text-muted);">Today • 06:30 PM</p>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-weight: 700; color: var(--primary);">Searching</div>
+                <div style="font-size: 0.875rem; color: var(--text-muted);">From: BITS Campus</div>
+                <button class="btn btn-primary"
+                    style="margin-top: 0.5rem; padding: 0.3rem 0.8rem; font-size: 0.875rem; background-color: var(--danger);">Cancel
+                    Request</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="past-trips" class="tab-content" style="margin-top: 2rem;">
+    <div class="trip-list">
+        <!-- Past Trip Example -->
+        <div class="card trip-card" style="border-left-color: var(--border);">
+            <div>
+                <span class="badge badge-past">Completed</span>
+                <h3 style="margin-top: 0.5rem;">To: Airport</h3>
+                <p style="font-size: 0.875rem; color: var(--text-muted);">Feb 20, 2026 • 04:00 AM</p>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-weight: 700; color: var(--text-muted);">Ended</div>
+                <div style="font-size: 0.875rem; color: var(--text-muted);">Driver: John Doe</div>
+                <div style="font-size: 0.875rem; color: var(--text-muted);">Fare: ₹150</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function switchTab(tabId) {
+        // Remove active class from all tabs
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+
+        // Add active class to selected tab
+        document.getElementById(tabId).classList.add('active');
+        event.currentTarget.classList.add('active');
+    }
+</script>
+{% endblock %}

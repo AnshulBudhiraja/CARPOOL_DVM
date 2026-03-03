@@ -1,0 +1,217 @@
+{% extends 'carpool_dvm/base.html' %}
+
+{% block title %}Request a Ride - Carpool DVM{% endblock %}
+
+{% block extra_css %}
+<style>
+    .request-container {
+        max-width: 600px;
+        margin: 2rem auto;
+    }
+
+    /* Override base colors to a Teal/Emerald passenger theme */
+    :root {
+        --primary: #0d9488;
+        --primary-hover: #0f766e;
+        --accent: #2dd4bf;
+    }
+
+    .form-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .form-header h2 {
+        font-size: 2rem;
+        color: var(--text);
+        margin-bottom: 0.5rem;
+    }
+
+    .form-header p {
+        color: var(--text-muted);
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: var(--text);
+    }
+
+    .form-group select,
+    .form-group input {
+        width: 100%;
+        padding: 0.8rem 1rem;
+        border-radius: 0.5rem;
+        background-color: var(--bg);
+        border: 1px solid var(--border);
+        color: var(--text);
+        font-size: 1rem;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .form-group select:focus,
+    .form-group input:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.2);
+    }
+
+    .fare-estimate {
+        background-color: rgba(45, 212, 191, 0.1);
+        border: 1px solid var(--accent);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin: 2rem 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .fare-details h4 {
+        color: var(--accent);
+        margin-bottom: 0.25rem;
+        font-size: 1.1rem;
+    }
+
+    .fare-details p {
+        color: var(--text-muted);
+        font-size: 0.875rem;
+    }
+
+    .fare-amount {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text);
+    }
+
+    .submit-btn {
+        width: 100%;
+        padding: 1rem;
+        font-size: 1.1rem;
+        margin-top: 1rem;
+    }
+
+    .estimate-btn {
+        width: 100%;
+        padding: 0.8rem;
+        font-size: 1rem;
+        margin-bottom: 1rem;
+        background-color: rgba(13, 148, 136, 0.1);
+        border: 1px solid var(--primary);
+        color: var(--primary);
+    }
+
+    .estimate-btn:hover {
+        background-color: var(--primary);
+        color: white;
+    }
+
+    /* Adding some subtle animation */
+    .card {
+        animation: fadeIn 0.5s ease-out;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="request-container">
+    <div class="card">
+        <div class="form-header">
+            <h2>Request a Ride</h2>
+            <p>Find your way to your destination comfortably</p>
+        </div>
+
+        <form method="POST">
+            {% csrf_token %}
+
+            {% if form.errors %}
+            <div
+                style="color: var(--danger); margin-bottom: 1rem; padding: 1rem; background-color: rgba(239,68,68,0.1); border-radius: 0.5rem; border: 1px solid var(--danger);">
+                Please correct the errors below.
+            </div>
+            {% endif %}
+
+            <div class="form-group">
+                <label for="{{ form.start_node.id_for_label }}">From Location</label>
+                {{ form.start_node }}
+                {% if form.start_node.errors %}
+                <span style="color: var(--danger); font-size: 0.875rem; display: block; margin-top: 0.5rem;">{{
+                    form.start_node.errors.0 }}</span>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.end_node.id_for_label }}">To Location</label>
+                {{ form.end_node }}
+                {% if form.end_node.errors %}
+                <span style="color: var(--danger); font-size: 0.875rem; display: block; margin-top: 0.5rem;">{{
+                    form.end_node.errors.0 }}</span>
+                {% endif %}
+            </div>
+
+            <button type="button" class="btn estimate-btn" id="estimate-fare-btn">
+                <span>🧮</span> Estimate Fare
+            </button>
+
+            <div class="fare-estimate" id="fare-estimate-container" style="display: none;">
+                <div class="fare-details">
+                    <h4>Estimated Fare</h4>
+                    <p>Based on distance and current rates</p>
+                </div>
+                <div class="fare-amount">
+                    <!-- Fare Logic to be coded later -->
+                    ₹<span id="calculated-fare-range">20 - 50</span>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary submit-btn"
+                style="box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);">
+                <span>🚕</span> Submit Request
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const startNode = document.querySelector('select[name="start_node"]');
+        const endNode = document.querySelector('select[name="end_node"]');
+        const fareDisplay = document.getElementById('calculated-fare-range');
+        const estimateBtn = document.getElementById('estimate-fare-btn');
+        const fareContainer = document.getElementById('fare-estimate-container');
+
+        if (estimateBtn) {
+            estimateBtn.addEventListener('click', function () {
+                // Show the estimate container when clicked
+                if (fareContainer) {
+                    fareContainer.style.display = 'flex';
+                }
+
+                // You can add the actual fare calculation logic here in the future
+                // if (startNode.value && endNode.value) {
+                //     fareDisplay.textContent = "...";
+                // }
+            });
+        }
+    });
+</script>
+{% endblock %}

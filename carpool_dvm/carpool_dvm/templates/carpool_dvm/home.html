@@ -1,0 +1,287 @@
+{% extends 'carpool_dvm/base.html' %}
+
+{% block title %}Home - Carpool DVM{% endblock %}
+
+{% block extra_css %}
+<style>
+    .home-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+
+    .tabs {
+        display: flex;
+        gap: 1rem;
+        background-color: var(--card-bg);
+        padding: 0.5rem;
+        border-radius: 0.75rem;
+        border: 1px solid var(--border);
+        width: fit-content;
+    }
+
+    .tab-btn {
+        padding: 0.5rem 1.5rem;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.2s;
+        color: var(--text-muted);
+        border: none;
+        background: none;
+    }
+
+    .tab-btn.active {
+        background-color: var(--primary);
+        color: white;
+    }
+
+    .tab-content {
+        display: none;
+        animation: fadeIn 0.3s ease-in-out;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .profile-card {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 2rem;
+        align-items: center;
+    }
+
+    .avatar-large {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary), var(--accent));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        font-weight: 700;
+        color: white;
+    }
+
+    .trip-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .trip-card {
+        padding: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-left: 4px solid var(--primary);
+    }
+
+    .trip-card.passenger {
+        border-left-color: var(--accent);
+    }
+
+    .badge {
+        padding: 0.25rem 0.5rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .badge-driver {
+        background: rgba(99, 102, 241, 0.2);
+        color: var(--primary);
+    }
+
+    .badge-passenger {
+        background: rgba(16, 185, 129, 0.2);
+        color: var(--accent);
+    }
+
+    /* Modal Styles */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(4px);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    }
+
+    .modal {
+        background: var(--card-bg);
+        padding: 2.5rem;
+        border-radius: 1.5rem;
+        border: 1px solid var(--border);
+        max-width: 500px;
+        width: 90%;
+        text-align: center;
+        position: relative;
+    }
+
+    .modal-options {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+        margin-top: 2rem;
+    }
+
+    .modal-option-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+        padding: 2rem 1rem;
+        border-radius: 1rem;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.05);
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .modal-option-btn:hover {
+        background: var(--primary);
+        border-color: var(--primary);
+        transform: translateY(-5px);
+    }
+
+    .modal-option-btn i {
+        font-size: 2.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="home-header">
+    <h1>Welcome back, {{ user.username|default:"Rider" }}!</h1>
+    <button class="btn btn-primary" onclick="toggleModal(true)">
+        <span>✨</span> Get Started
+    </button>
+</div>
+
+<div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('profile')">Profile</button>
+    <button class="tab-btn" onclick="switchTab('trips')">Previous Trips</button>
+</div>
+
+<div id="profile" class="tab-content active" style="margin-top: 2rem;">
+    <div class="card profile-card">
+        <div class="avatar-large">
+            {{ user.username.0|upper|default:"U" }}
+        </div>
+        <div>
+            <h2>{{ user.full_name|default:user.username }}</h2>
+            <p style="color: var(--text-muted);">{{ user.email|default:"no-email@example.com" }}</p>
+            <div style="margin-top: 1rem; display: flex; gap: 1rem;">
+                <div class="card" style="padding: 0.75rem; text-align: center; flex: 1;">
+                    <div style="font-size: 1.5rem; font-weight: 700;">12</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">Total Rides</div>
+                </div>
+                <div class="card" style="padding: 0.75rem; text-align: center; flex: 1;">
+                    <div style="font-size: 1.5rem; font-weight: 700;">4.9</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">Rating</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="trips" class="tab-content" style="margin-top: 2rem;">
+    <div class="trip-list">
+        <!-- Driver Trip Example -->
+        <div class="card trip-card">
+            <div>
+                <span class="badge badge-driver">Driver</span>
+                <h3 style="margin-top: 0.5rem;">To: BITS Campus</h3>
+                <p style="font-size: 0.875rem; color: var(--text-muted);">Feb 24, 2026 • 09:30 AM</p>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-weight: 700; color: var(--accent);">Completed</div>
+                <div style="font-size: 0.875rem; color: var(--text-muted);">3 Passengers</div>
+            </div>
+        </div>
+
+        <!-- Passenger Trip Example -->
+        <div class="card trip-card passenger">
+            <div>
+                <span class="badge badge-passenger">Passenger</span>
+                <h3 style="margin-top: 0.5rem;">To: Railway Station</h3>
+                <p style="font-size: 0.875rem; color: var(--text-muted);">Feb 22, 2026 • 04:15 PM</p>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-weight: 700; color: var(--accent);">Completed</div>
+                <div style="font-size: 0.875rem; color: var(--text-muted);">Driver: Aryan</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Ride Options Modal -->
+<div id="rideModal" class="modal-overlay" onclick="if(event.target == this) toggleModal(false)">
+    <div class="modal">
+        <h2>What would you like to do?</h2>
+        <p style="color: var(--text-muted); margin-top: 0.5rem;">Choose your next journey</p>
+
+        <div class="modal-options">
+            <a href="{% url 'home_passenger' %}" class="modal-option-btn"
+                style="text-decoration: none; color: inherit;">
+                <span style="font-size: 2.5rem;">🔍</span>
+                <span style="font-weight: 600;">Book a Ride</span>
+            </a>
+            <a href="{% url 'driver_signup_view' %}" class="modal-option-btn" style="text-decoration: none; color: inherit;">
+                <span style="font-size: 2.5rem;">🚘</span>
+                <span style="font-weight: 600;">I want to Drive</span>
+            </a>
+        </div>
+
+        <button class="btn" style="margin-top: 2rem; color: var(--text-muted);"
+            onclick="toggleModal(false)">Close</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function switchTab(tabId) {
+        // Remove active class from all tabs
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+
+        // Add active class to selected tab
+        document.getElementById(tabId).classList.add('active');
+        event.currentTarget.classList.add('active');
+    }
+
+    function toggleModal(show) {
+        const modal = document.getElementById('rideModal');
+        modal.style.display = show ? 'flex' : 'none';
+
+        if (show) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'auto';
+        }
+    }
+</script>
+{% endblock %}

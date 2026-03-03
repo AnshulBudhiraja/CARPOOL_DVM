@@ -1,0 +1,258 @@
+{% extends 'carpool_dvm/base.html' %}
+
+{% block title %}Driver Home - Carpool DVM{% endblock %}
+
+{% block extra_css %}
+<style>
+    .home-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+
+    /* Override base colors to match create_trip theme */
+    :root {
+        --primary: #f43f5e;
+        --primary-hover: #e11d48;
+        --accent: #fb7185;
+    }
+
+    .tabs {
+        display: flex;
+        gap: 1rem;
+        background-color: var(--card-bg);
+        padding: 0.5rem;
+        border-radius: 0.75rem;
+        border: 1px solid var(--border);
+        width: fit-content;
+        flex-wrap: wrap;
+    }
+
+    .tab-btn {
+        padding: 0.5rem 1.5rem;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.2s;
+        color: var(--text-muted);
+        border: none;
+        background: none;
+    }
+
+    .tab-btn.active {
+        background-color: var(--primary);
+        color: white;
+    }
+
+    .tab-content {
+        display: none;
+        animation: fadeIn 0.3s ease-in-out;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .profile-card {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 2rem;
+        align-items: center;
+    }
+
+    .avatar-large {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary), var(--accent));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        font-weight: 700;
+        color: white;
+    }
+
+    .trip-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .trip-card {
+        padding: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-left: 4px solid var(--primary);
+    }
+
+    .trip-card.active-trip {
+        border-left-color: var(--accent);
+    }
+
+    .badge {
+        padding: 0.25rem 0.5rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .badge-driver {
+        background: rgba(99, 102, 241, 0.2);
+        color: var(--primary);
+    }
+
+    .badge-active {
+        background: rgba(244, 63, 94, 0.2);
+        color: var(--primary);
+    }
+
+    .badge-past {
+        background: rgba(148, 163, 184, 0.2);
+        color: var(--text-muted);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="home-header">
+    <h1>Welcome Driver, {{ user.username|default:"Mate" }}!</h1>
+    <a href="{% url 'publish_trip_view' %}" class="btn btn-primary"
+        style="text-decoration: none; box-shadow: 0 4px 12px rgba(244, 63, 94, 0.3);">
+        <span>🚗</span> Create a Trip
+    </a>
+</div>
+
+<div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('profile')">Profile</button>
+    <button class="tab-btn" onclick="switchTab('active-trips')">Active Trips</button>
+    <button class="tab-btn" onclick="switchTab('past-trips')">Past Trips</button>
+</div>
+
+<div id="profile" class="tab-content active" style="margin-top: 2rem;">
+    <div class="card profile-card">
+        <div class="avatar-large">
+            {{ user.username.0|upper|default:"D" }}
+        </div>
+        <div>
+            <h2>{{ user.full_name|default:user.username|default:"Driver Profile" }}</h2>
+            <p style="color: var(--text-muted);">{{ user.email|default:"driver@example.com" }}</p>
+            <div style="margin-top: 1rem; display: flex; gap: 1rem;">
+                <div class="card" style="padding: 0.75rem; text-align: center; flex: 1;">
+                    <div style="font-size: 1.5rem; font-weight: 700;">{{ active_trips|length|add:past_trips|length }}
+                    </div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">Trips Hosted</div>
+                </div>
+                <div class="card" style="padding: 0.75rem; text-align: center; flex: 1;">
+                    <div style="font-size: 1.5rem; font-weight: 700;">4.95</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">Driver Rating</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="active-trips" class="tab-content" style="margin-top: 2rem;">
+    <div class="trip-list">
+        {% if active_trips %}
+        {% for trip in active_trips %}
+        <div class="card trip-card active-trip">
+            <div>
+                <span class="badge badge-active">Upcoming</span>
+                <h3 style="margin-top: 0.5rem;">{{ trip.start_node.name }} --> {{ trip.end_node.name }}</h3>
+                <p style="font-size: 0.875rem; color: var(--text-muted);">
+                    {{ trip.departure_time|date:"M d, Y P" }}</p>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-weight: 700; color: var(--accent);">Active</div>
+                <div style="font-size: 0.875rem; color: var(--text-muted);">{{ trip.available_seats }}/
+                    {{ trip.max_passengers_trip }} Seats Available</div>
+                <form action="{% url 'cancel_trip' trip.id %}" method="POST"
+                    onsubmit="return confirm('Are you sure you want to cancel this trip?');"
+                    style="margin-top: 0.5rem;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary"
+                        style="padding: 0.3rem 0.8rem; font-size: 0.875rem; background-color: var(--primary); border: none;">Cancel
+                        Trip</button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <!-- Empty State for Active Trips -->
+        <div class="card"
+            style="text-align: center; padding: 3rem 1.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; border: 1px dashed var(--border); background-color: rgba(30, 41, 59, 0.5);">
+            <div style="font-size: 3rem; margin-bottom: 0.5rem;">🛤️</div>
+            <h3 style="color: var(--text); font-size: 1.25rem;">No Active Trips</h3>
+            <p style="color: var(--text-muted); max-width: 300px; margin-bottom: 1rem;">You don't have any upcoming
+                trips scheduled. Ready to hit the road?</p>
+            <a href="{% url 'publish_trip_view' %}" class="btn btn-primary"
+                style="text-decoration: none; box-shadow: 0 4px 12px rgba(244, 63, 94, 0.3);">
+                <span>🚗</span> Create a Trip
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div id="past-trips" class="tab-content" style="margin-top: 2rem;">
+    <div class="trip-list">
+        {% if past_trips %}
+        {% for trip in past_trips %}
+        <div class="card trip-card" style="border-left-color: var(--border);">
+            <div>
+                <span class="badge badge-past">Completed</span>
+                <h3 style="margin-top: 0.5rem;">To: {{ trip.end_node.name }}</h3>
+                <p style="font-size: 0.875rem; color: var(--text-muted);">From: {{ trip.start_node.name }} •
+                    {{ trip.created_at }}</p>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-weight: 700; color: var(--text-muted);">Ended</div>
+                <div style="font-size: 0.875rem; color: var(--text-muted);">Total Seats: {{ trip.max_passengers_trip }}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <!-- Empty State for Past Trips -->
+        <div class="card"
+            style="text-align: center; padding: 3rem 1.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; border: 1px dashed var(--border); background-color: rgba(30, 41, 59, 0.5);">
+            <div style="font-size: 3rem; margin-bottom: 0.5rem;">📜</div>
+            <h3 style="color: var(--text); font-size: 1.25rem;">No Past Trips</h3>
+            <p style="color: var(--text-muted); max-width: 300px; margin-bottom: 1rem;">You haven't completed any trips
+                yet.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function switchTab(tabId) {
+        // Remove active class from all tabs
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+
+        // Add active class to selected tab
+        document.getElementById(tabId).classList.add('active');
+        event.currentTarget.classList.add('active');
+    }
+</script>
+{% endblock %}
