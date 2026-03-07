@@ -4,5 +4,8 @@ from . import views
 urlpatterns = [
     path("publish/", views.publish_trip_view, name="publish_trip_view"),
     path("request/", views.request_trip_view, name="request_trip_view"),
-    path("cancel_trip/<int:trip_id>/", views.cancel_trip_view, name="cancel_trip"),
+    path("cancel_trip/<int:trip_id>/", views.cancel_trip_view, name="cancel_trip_view"),
+    # path("request_results/<int:req_id>/" , views.request_result_view, 
+    # name="request_result_view"),
+    path("offer_trip/<int:req_id>/", views.offer_ride_view , name="offer_ride_view")
 ]

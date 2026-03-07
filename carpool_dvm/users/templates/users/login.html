@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign Up | Carpool</title>
+    <title>Log In | Carpool</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -161,8 +161,8 @@
 <body>
     <div class="auth-card">
         <div class="header">
-            <h1>Join Carpool</h1>
-            <p>Create your account to start sharing</p>
+            <h1>Welcome Back</h1>
+            <p>Log in to your account</p>
         </div>
 
         <form method="POST">
@@ -190,11 +190,11 @@
             </div>
             {% endfor %}
 
-            <button type="submit" class="btn-submit">Sign Up</button>
+            <button type="submit" class="btn-submit">Log In</button>
         </form>
 
         <div class="footer">
-            Already have an account? <a href="{% url 'login' %}">Log In</a>
+            Don't have an account? <a href="{% url 'signup' %}">Sign Up</a>
         </div>
     </div>
 </body>

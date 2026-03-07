@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from .forms import CreateTripForm, RequestTripForm
 from django.contrib import messages
 from .models import Trip, Carpool_request
-from .utils import shortest_path, find_requested_trip
+from .utils import shortest_path, potential_ride_requests
 from roadmap.models import  Node
 from django.utils import timezone
 from datetime import timedelta
@@ -45,6 +45,7 @@ def publish_trip_view(request):
 
     return render(request, "logic/create_trip.html", {"form":form})
 
+
 def cancel_trip_view(request, trip_id):
     if request.method == "POST":
         trip = get_object_or_404(Trip, id=trip_id)
@@ -73,16 +74,7 @@ def request_trip_view(request):
         if form.is_valid():
             ride_request = form.save(commit=False)
             ride_request.passenger = request.user
-
-            matched_trip = find_requested_trip(ride_request)
-
-            if matched_trip.available_seats == 0 :
-                matched_trip.is_active = False
-
-            matched_trip.save()
-
             ride_request.save()
-
             return redirect("home_passenger")
 
     else:
@@ -91,3 +83,30 @@ def request_trip_view(request):
     return render(request, "logic/request_trip.html", {"form": form})
 
 
+@login_required
+def offer_ride_view(request,req_id):
+    if request.method == 'POST':
+        carpool_req = get_object_or_404(Carpool_request, id=req_id)
+        
+        driver_trip = Trip.objects.filter(driver=request.user, is_active=True).first()
+        
+        if driver_trip:
+            carpool_req.matched_trip.add(driver_trip)
+            messages.success(request, f"Ride offer sent to {carpool_req.passenger.username}!")
+        else:
+            messages.error(request, "You don't have an active trip.")
+            
+    return redirect('home_driver')
+
+
+# def request_result_view(request, req_id):
+#     ride_request = get_object_or_404(Carpool_request, id = req_id , passenger = request.user)
+
+#     all_offers = ride_request.matched_trip.all()
+
+#     context = {
+#         'ride_request': ride_request,
+#         'offers': all_offers,
+#     }
+
+#     return render(request, "logic/request_results.html", context)

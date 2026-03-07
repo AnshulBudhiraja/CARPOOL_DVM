@@ -12,7 +12,7 @@ class Trip(models.Model):
 
     max_passengers_trip = models.IntegerField(default=4)
 
-    available_seats = models.IntegerField(default=0)
+    available_seats = models.IntegerField(default=4)
 
     route = models.JSONField(blank=True, null=True)
 
@@ -24,8 +24,10 @@ class Trip(models.Model):
 
     departure_time = models.DateTimeField(default=timezone.now)
 
+    passengers = models.ManyToManyField(User, related_name='joined_trips', blank=True)
+
     def __str__(self):
-        return f"Trip: {self.start_node.name} to {self.end_node.name} by {self.driver.username}"
+        return f"Trip: {self.start_node.name} to {self.end_node.name} by {self.driver.username} , seats left {self.available_seats}"
     
 class Carpool_request(models.Model):
     passenger = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="carpool_request")
@@ -37,19 +39,19 @@ class Carpool_request(models.Model):
         ('Cancelled', 'Cancelled')
     )
 
-    start_node = models.ForeignKey(Node, on_delete=models.CASCADE, related_name="passeneger_trip_start")
+    start_node = models.ForeignKey(Node, on_delete=models.CASCADE, related_name="passenger_trip_start")
     end_node = models.ForeignKey(Node, on_delete=models.CASCADE, related_name="passenger_trip_end")
 
-    matched_trip = models.ForeignKey(
-        'Trip', 
-        on_delete=models.SET_NULL, 
+    matched_trip = models.ManyToManyField(
+        Trip,
         null=True, 
         blank=True, 
-        related_name='matched_passengers'
+        # related_name='offered_trips'
     )
 
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
     created_at = models.DateTimeField(auto_now_add=True)
+
 
     def __str__(self):
         return f"{self.passenger} requested to go : {self.start_node} --> {self.end_node}"
