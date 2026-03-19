@@ -126,6 +126,105 @@
         background: rgba(148, 163, 184, 0.2);
         color: var(--text-muted);
     }
+
+    /* ── Update Location Panel ── */
+    .location-panel {
+        background: rgba(244, 63, 94, 0.06);
+        border: 1px solid rgba(244, 63, 94, 0.25);
+        border-radius: 12px;
+        padding: 1rem 1.25rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .location-panel h4 {
+        font-size: 0.85rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--primary);
+        margin: 0;
+    }
+
+    /* Route progress steps */
+    .route-steps {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        flex-wrap: wrap;
+        row-gap: 0.4rem;
+    }
+
+    .route-step {
+        display: flex;
+        align-items: center;
+        gap: 0;
+    }
+
+    .step-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--border);
+        flex-shrink: 0;
+        transition: background 0.3s;
+    }
+
+    .step-dot.done {
+        background: var(--primary);
+    }
+
+    .step-dot.current {
+        background: #fb7185;
+        box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.3);
+        width: 13px;
+        height: 13px;
+    }
+
+    .step-line {
+        width: 24px;
+        height: 2px;
+        background: var(--border);
+        flex-shrink: 0;
+    }
+
+    .step-line.done {
+        background: var(--primary);
+    }
+
+    .step-label {
+        font-size: 0.65rem;
+        color: var(--text-muted);
+        display: none;
+        /* shown via JS tooltip or omitted for space */
+    }
+
+    /* Select + button row */
+    .location-controls {
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .location-controls select {
+        flex: 1;
+        min-width: 160px;
+        padding: 0.45rem 0.75rem;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--card-bg);
+        color: var(--text);
+        font-size: 0.875rem;
+    }
+
+    #location-feedback {
+        font-size: 0.8rem;
+        font-weight: 600;
+        min-height: 1.2em;
+        transition: color 0.3s;
+    }
 </style>
 {% endblock %}
 
@@ -177,93 +276,182 @@
 
 <div id="active-trips" class="tab-content {% if active_trip %}active{% endif %}" style="margin-top: 2rem;">
     <div class="trip-list">
-    {% if active_trip %}
+        {% if active_trip %}
         <div class="card trip-card active-trip" style="flex-direction: column; align-items: stretch; gap: 1.25rem;">
-        
-        {# Trip Header Row #}
-        <div
-        style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
-        <div>
-            <span class="badge badge-active">Active</span>
-            <h3 style="margin-top: 0.5rem;">{{ active_trip.start_node.name }} → {{ active_trip.end_node.name }}</h3>
-            <p style="font-size: 0.875rem; color: var(--text-muted); margin-top: 0.25rem;">
-                🕐 {{ trip.departure_time|date:"M d, Y P" }}
-            </p>
-            <p style="font-size: 0.875rem; color: var(--text-muted);">
-                💺 {{ active_trip.available_seats }} / 
-                {{ active_trip.max_passengers_trip }} seats available
-            </p>
-        </div>
-        {% comment %} {% if active_trip %} {% endcomment %}
-        {% comment %} <div>
-            <form action="{% url 'cancel_trip_view' trip.id %}" method="POST"
-            onsubmit="return confirm('Are you sure you want to cancel this trip?');"
-            style="margin-top: 0.25rem;">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-primary"
-            style="padding: 0.3rem 0.8rem; font-size: 0.875rem; background-color: var(--primary); border: none;">
-            ✕ Cancel Trip
-        </button>
-    </form>
-</div> {% endcomment %}
-{% comment %} {% endif %} {% endcomment %}
-        </div>
 
-        {% if potential_trips %}
-            {# Potential Ride Requests #}
-            <div>
-                <p
-                    style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem;">
-                    🛎 Potential Ride Requests ({{ potential_trips|length }})
-                </p>
+            {# Trip Header Row #}
+            <div
+                style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <span class="badge badge-active">Active</span>
+                    <h3 style="margin-top: 0.5rem;">{{ active_trip.start_node.name }} → {{ active_trip.end_node.name }}
+                    </h3>
+                    <p style="font-size: 0.875rem; color: var(--text-muted); margin-top: 0.25rem;">
+                        🕐 {{ trip.departure_time|date:"M d, Y P" }}
+                    </p>
+                    <p style="font-size: 0.875rem; color: var(--text-muted);">
+                        💺 {{ active_trip.available_seats }} /
+                        {{ active_trip.max_passengers_trip }} seats available
+                    </p>
 
-                {% for trip in potential_trips %}
-                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                    <div class="card"
-                        style="padding: 0.875rem 1rem; border-left: 3px solid #fb7185; background: rgba(244,63,94,0.07); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
-                        <div>
-                            <p style="font-weight: 600; color: var(--text);">👤 {{ trip.passenger.username }}</p>
-                            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">
-                                {{ trip.start_node.name }} → {{ trip.end_node.name }}
-                            </p>
-                            {% if trip.detour_hops %}
-                            <p style="font-size: 0.75rem; color: #fb7185; margin-top: 0.2rem;">
-                                📍 Detour: {{ trip.detour_hops }} hop(s)
-                            </p>
-                            {% endif %}
+                    {# Joined Passengers Section #}
+                    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                        <p style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">
+                            👥 Joined Passengers ({{ active_trip.passengers.count }})
+                        </p>
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                            {% for passenger in active_trip.passengers.all %}
+                            <div class="card" style="padding: 0.4rem 0.6rem; display: flex; align-items: center; gap: 0.4rem; background: rgba(244, 63, 94, 0.08); border: 1px solid rgba(244, 63, 94, 0.1); margin: 0;">
+                                <div style="width: 20px; height: 20px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 700;">
+                                    {{ passenger.username.0|upper }}
+                                </div>
+                                <span style="font-size: 0.8rem; font-weight: 600;">{{ passenger.username }}</span>
+                            </div>
+                            {% empty %}
+                            <p style="font-size: 0.8rem; color: var(--text-muted); font-style: italic;">No passengers joined yet.</p>
+                            {% endfor %}
                         </div>
-                        <form action="{% url 'offer_ride_view' req_id=trip.id %}" method="POST">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-primary"
-                                style="padding: 0.4rem 1rem; font-size: 0.85rem; white-space: nowrap;">
-                                🚗 Offer Ride
-                            </button>
-                        </form>
                     </div>
                 </div>
+                {% if active_trip %}
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.25rem;">
+                    <form action="{% url 'start_trip_view' trip_id=active_trip.id %}" method="POST">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary"
+                            style="padding: 0.3rem 0.8rem; font-size: 0.875rem; background-color: #22c55e; border: none;">
+                            ▶ Start Trip
+                        </button>
+                    </form>
+                    {% with last_index=active_trip.route|length|add:"-1" %}
+                        {% if active_trip.current_node_index == last_index %}
+                        <form action="{% url 'end_trip_view' trip_id=active_trip.id %}" method="POST"
+                            onsubmit="return confirm('Are you sure you want to end this trip?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-primary"
+                                style="padding: 0.3rem 0.8rem; font-size: 0.875rem; background-color: #f97316; border: none;">
+                                🏁 End Trip
+                            </button>
+                        </form>
+                        {% endif %}
+                    {% endwith %}
+                    <form action="{% url 'cancel_trip_view' trip_id=active_trip.id %}" method="POST"
+                        onsubmit="return confirm('Are you sure you want to cancel this trip?');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary"
+                            style="padding: 0.3rem 0.8rem; font-size: 0.875rem; background-color: var(--primary); border: none;">
+                            ✕ Cancel Trip
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+
+            {# ── Update Location Panel ── #}
+            {% if active_trip.route %}
+            <div class="location-panel">
+                <h4>📍 Update My Location</h4>
+
+                {# Route progress dots #}
+                <div class="route-steps" title="Your route progress">
+                    {% for node in active_trip.route %}
+                    <div class="route-step">
+                        {% if forloop.counter0 < active_trip.current_node_index %} <div class="step-dot done"
+                            title="{{ node.name }}">
+                    </div>
+                    {% elif forloop.counter0 == active_trip.current_node_index %}
+                    <div class="step-dot current" title="{{ node.name }} (current)"></div>
+                    {% else %}
+                    <div class="step-dot" title="{{ node.name }}"></div>
+                    {% endif %}
+                    {% if not forloop.last %}
+                    <div class="step-line {% if forloop.counter0 < active_trip.current_node_index %}done{% endif %}">
+                    </div>
+                    {% endif %}
+                </div>
                 {% endfor %}
-        {% else %}
-            <div style="text-align: center; padding: 1.25rem; border: 1px dashed var(--border); border-radius: 12px; color: var(--text-muted); font-size: 0.875rem;">
-                    No matching ride requests right now.
             </div>
+            <p style="font-size:0.75rem; color:var(--text-muted); margin:0;">
+                Currently at stop <strong>{{ active_trip.current_node_index|add:1 }}</strong>
+                of <strong>{{ active_trip.route|length }}</strong>
+                — <em>{{ active_trip.start_node.name }} → {{ active_trip.end_node.name }}</em>
+            </p>
+
+            <div class="location-controls">
+                <select id="node-index-select">
+                    {% for node in active_trip.route %}
+                    {% if forloop.counter0 > active_trip.current_node_index %}
+                    <option value="{{ forloop.counter0 }}">
+                        Stop {{ forloop.counter }} — {{ node.name }}
+                    </option>
+                    {% endif %}
+                    {% endfor %}
+                </select>
+                <button class="btn btn-primary" onclick="updateLocation()"
+                    style="padding: 0.45rem 1rem; font-size:0.875rem; white-space:nowrap;">
+                    ✅ I'm Here
+                </button>
+            </div>
+            <span id="location-feedback"></span>
+        </div>
         {% endif %}
+
+        {% if potential_trips %}
+        {# Potential Ride Requests #}
+        <div>
+            <p
+                style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem;">
+                🛎 Potential Ride Requests ({{ potential_trips|length }})
+            </p>
+
+            {% for req in potential_trips %}
+            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <div class="card"
+                    style="padding: 0.875rem 1rem; border-left: 3px solid #fb7185; background: rgba(244,63,94,0.07); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+                    <div>
+                        <p style="font-weight: 600; color: var(--text);">👤 {{ req.passenger.username }}</p>
+                        <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">
+                            {{ req.start_node.name }} → {{ req.end_node.name }}
+                        </p>
+                        {% if req.detour_hops %}
+                        <p style="font-size: 0.75rem; color: #fb7185; margin-top: 0.2rem;">
+                            📍 Detour: {{ req.detour_hops }} hop(s)
+                        </p>
+                        {% endif %}
+                    </div>
+                    <form action="{% url 'offer_ride_view' req_id=req.id %}" method="POST"
+                        onsubmit="const btn=this.querySelector('button');btn.disabled=true;btn.style.opacity='0.7';btn.style.cursor='not-allowed';btn.textContent='✅ Ride Offered';">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary"
+                            style="padding: 0.4rem 1rem; font-size: 0.85rem; white-space: nowrap;">
+                            🚗 Offer Ride
+                        </button>
+                    </form>
+                </div>
             </div>
+            {% endfor %}
         </div>
-    {% else %}
-        <!-- Empty State for Active Trips -->
-        <div class="card"
-            style="text-align: center; padding: 3rem 1.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; border: 1px dashed var(--border); background-color: rgba(30, 41, 59, 0.5);">
-            <div style="font-size: 3rem; margin-bottom: 0.5rem;">🛤️</div>
-            <h3 style="color: var(--text); font-size: 1.25rem;">No Active Trips</h3>
-            <p style="color: var(--text-muted); max-width: 300px; margin-bottom: 1rem;">You don't have any upcoming
-                trips scheduled. Ready to hit the road?</p>
-            <a href="{% url 'publish_trip_view' %}" class="btn btn-primary"
-                style="text-decoration: none; box-shadow: 0 4px 12px rgba(244, 63, 94, 0.3);">
-                <span>🚗</span> Create a Trip
-            </a>
+        {% else %}
+        <div
+            style="text-align: center; padding: 1.25rem; border: 1px dashed var(--border); border-radius: 12px; color: var(--text-muted); font-size: 0.875rem;">
+            No matching ride requests right now.
         </div>
-    {% endif %}
+        {% endif %}
     </div>
+    {% else %}
+    <!-- Empty State for Active Trips -->
+    <div class="card"
+        style="text-align: center; padding: 3rem 1.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; border: 1px dashed var(--border); background-color: rgba(30, 41, 59, 0.5);">
+        <div style="font-size: 3rem; margin-bottom: 0.5rem;">🛤️</div>
+        <h3 style="color: var(--text); font-size: 1.25rem;">No Active Trips</h3>
+        <p style="color: var(--text-muted); max-width: 300px; margin-bottom: 1rem;">You don't have any upcoming
+            trips scheduled. Ready to hit the road?</p>
+        <a href="{% url 'publish_trip_view' %}" class="btn btn-primary"
+            style="text-decoration: none; box-shadow: 0 4px 12px rgba(244, 63, 94, 0.3);">
+            <span>🚗</span> Create a Trip
+        </a>
+    </div>
+    {% endif %}
+</div>
 </div>
 
 <div id="past-trips" class="tab-content" style="margin-top: 2rem;">
@@ -292,7 +480,8 @@
             style="text-align: center; padding: 3rem 1.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; border: 1px dashed var(--border); background-color: rgba(30, 41, 59, 0.5);">
             <div style="font-size: 3rem; margin-bottom: 0.5rem;">📜</div>
             <h3 style="color: var(--text); font-size: 1.25rem;">No Past Trips</h3>
-            <p style="color: var(--text-muted); max-width: 300px; margin-bottom: 1rem;">You haven't completed any trips
+            <p style="color: var(--text-muted); max-width: 300px; margin-bottom: 1rem;">You haven't completed any
+                trips
                 yet.</p>
         </div>
         {% endif %}
@@ -311,6 +500,47 @@
         // Add active class to selected tab
         document.getElementById(tabId).classList.add('active');
         event.currentTarget.classList.add('active');
+    }
+
+    function updateLocation() {
+        const select = document.getElementById('node-index-select');
+        const feedback = document.getElementById('location-feedback');
+
+        if (!select || select.options.length === 0) {
+            feedback.style.color = 'var(--text-muted)';
+            feedback.textContent = '⚠️ No further stops available on this route.';
+            return;
+        }
+
+        const selectedIndex = select.value;
+
+        feedback.style.color = 'var(--text-muted)';
+        feedback.textContent = '⏳ Updating…';
+
+        fetch("{% url 'update_driver_location_api' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}',
+            },
+            body: JSON.stringify({ current_node_index: parseInt(selectedIndex) }),
+        })
+            .then(res => res.json().then(data => ({ ok: res.ok, data })))
+            .then(({ ok, data }) => {
+                if (ok) {
+                    feedback.style.color = '#22c55e';
+                    feedback.textContent = `✅ Location updated to stop ${parseInt(selectedIndex) + 1}!`;
+                    // Reload after short delay so the progress bar reflects new position
+                    setTimeout(() => location.reload(), 1200);
+                } else {
+                    feedback.style.color = '#f43f5e';
+                    feedback.textContent = `❌ ${data.error || 'Could not update location.'}`;
+                }
+            })
+            .catch(() => {
+                feedback.style.color = '#f43f5e';
+                feedback.textContent = '❌ Network error. Please try again.';
+            });
     }
 </script>
 {% endblock %}

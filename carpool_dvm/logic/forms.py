@@ -9,7 +9,8 @@ class CreateTripForm(forms.ModelForm):
         labels = {
             'start_node' : "Where do you want to start from?",
             'end_node' : "Where do you want to go?",
-            'max_passengers' : "How many vacant seats are there?",
+            'max_passengers_trip' : "How many vacant seats are there?",
+            'departure_time' : "What time do you want to leave at?"
         }
 
 class RequestTripForm(forms.ModelForm):

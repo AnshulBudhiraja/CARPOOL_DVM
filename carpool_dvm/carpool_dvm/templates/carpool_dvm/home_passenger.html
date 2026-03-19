@@ -139,14 +139,14 @@
 </div>
 
 <div class="tabs">
-    <button class="tab-btn {% if active_requests %}active{% endif %}" onclick="switchTab('active-trips')">Upcoming
+    <button class="tab-btn {% if req %}active{% endif %}" onclick="switchTab('active-trips')">Upcoming
         Trips</button>
-    <button class="tab-btn {% if not active_requests %}active{% endif %}"
+    <button class="tab-btn {% if not req %}active{% endif %}"
         onclick="switchTab('profile')">Profile</button>
     <button class="tab-btn" onclick="switchTab('past-trips')">Past Rides</button>
 </div>
 
-<div id="profile" class="tab-content {% if not active_requests %}active{% endif %}" style="margin-top: 2rem;">
+<div id="profile" class="tab-content {% if not req %}active{% endif %}" style="margin-top: 2rem;">
     <div class="card profile-card">
         <div class="avatar-large">
             {{ user.username.0|upper|default:"P" }}
@@ -168,12 +168,12 @@
     </div>
 </div>
 
-<div id="active-trips" class="tab-content {% if active_requests %}active{% endif %}" style="margin-top: 2rem;">
+<div id="active-trips" class="tab-content {% if req %}active{% endif %}" style="margin-top: 2rem;">
     <div class="trip-list">
-        {% for req in active_requests %}
         <div class="card trip-card active-trip" style="flex-direction: column; align-items: stretch; gap: 1rem;">
 
             {# Request Header #}
+            {% if req %}
             <div
                 style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.75rem;">
                 <div>
@@ -184,56 +184,47 @@
                         Requested on {{ req.created_at|date:"M d, Y • h:i A" }}
                     </p>
                 </div>
-                <div>
+                <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                    {% if req.status == 'Pending' or req.status == 'Confirmed' %}
+                    <form action="{% url 'cancel_request_view' req_id=req.id %}" method="POST"
+                        onsubmit="return confirm('Are you sure you want to cancel this request?');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn"
+                            style="padding: 0.3rem 0.9rem; font-size: 0.85rem; background-color: #dc2626; color: white; border: none; border-radius: 0.375rem; white-space: nowrap; cursor: pointer; transition: background-color 0.2s;"
+                            onmouseover="this.style.backgroundColor='#b91c1c'"
+                            onmouseout="this.style.backgroundColor='#dc2626'">
+                            ✕ Cancel Request
+                        </button>
+                    </form>
+                    {% endif %}
                     {% if req.status == 'Pending' %}
                     <span style="font-size: 0.85rem; color: var(--text-muted);">🔍 Looking for a driver…</span>
-                    {% elif req.status == 'Matched' %}
-                    <span style="font-size: 0.85rem; color: var(--primary); font-weight: 600;">✅ Matched!</span>
+                    {% elif req.status == 'Confirmed' %}
+                    <span style="font-size: 0.85rem; color: var(--primary); font-weight: 600;">✅ Ride Confirmed!</span>
+                    <form action="{% url 'start_ride_view' req_id=req.id %}" method="POST">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary"
+                            style="padding: 0.3rem 0.9rem; font-size: 0.85rem; background-color: #22c55e; border: none; white-space: nowrap;">
+                            ▶ Start Ride
+                        </button>
+                    </form>
+                    {% elif req.status == 'In Progress' %}
+                    <span style="font-size: 0.85rem; color: var(--accent); font-weight: 600;">🚗 Ride In Progress</span>
+                    <form action="{% url 'end_ride_view' req_id=req.id %}" method="POST"
+                        onsubmit="return confirm('Are you sure you want to end your ride?');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary"
+                            style="padding: 0.3rem 0.9rem; font-size: 0.85rem; background-color: #f97316; border: none; white-space: nowrap;">
+                            🏁 End Ride
+                        </button>
+                    </form>
                     {% endif %}
                 </div>
             </div>
-            {% include "logic/request_results.html" with ride_request=req offers=req.matched_trip.all %}
+            {% include "logic/request_results.html" with ride_request=req offers=offers %}
             {# Matched Trip Result #}
-            {% comment %} {% if offers %}
-            {% for trip in offers %}
-            <div style="border-top: 1px solid var(--border); padding-top: 0.875rem;">
-                <p
-                    style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.6rem;">
-                    🚗 Matched Ride
-                </p>
-                <div class="card"
-                    style="padding: 0.875rem 1rem; border-left: 3px solid var(--accent); background: rgba(13,148,136,0.07); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
-                    <div>
-                        <p style="font-weight: 600; color: var(--text);">
-                            👤 Driver: {{ trip.driver.username }}
-                        </p>
-                        <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">
-                            {{ trip.start_node.name }} → {{ trip.end_node.name }}
-                        </p>
-                        <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">
-                            🕐 {{ trip.departure_time|date:"M d, Y • h:i A" }}
-                        </p>
-                        <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">
-                            💺 {{ trip.available_seats }} / {{ trip.max_passengers_trip }} seats
-                            left
-                        </p>
-                    </div>
-                    <a href="{% url 'request_result_view' req.id %}"
-                        style="font-size: 0.8rem; color: var(--primary); font-weight: 600; text-decoration: none; white-space: nowrap;">
-                        View Details →
-                    </a>
-                </div>
-            </div>
-            {% endfor %} {% endcomment %}
-            {% comment %} {% else %}
-            <div
-                style="border-top: 1px solid var(--border); padding-top: 0.875rem; text-align: center; color: var(--text-muted); font-size: 0.85rem; padding-bottom: 0.25rem;">
-                ⏳ Waiting for a driver to offer a ride…
-            </div>
-            {% endif %} {% endcomment %}
-
         </div>
-        {% empty %}
+        {% else %}
         <!-- Empty State -->
         <div class="card"
             style="text-align: center; padding: 3rem 1.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; border: 1px dashed var(--border); background-color: rgba(30, 41, 59, 0.5);">
@@ -246,7 +237,7 @@
                 <span>🚕</span> Request a Ride
             </a>
         </div>
-        {% endfor %}
+        {% endif %}
     </div>
 </div>
 
@@ -269,8 +260,9 @@
                 <div style="font-weight: 700; color: var(--text-muted);">Ended</div>
                 <div style="font-size: 0.875rem; color: var(--text-muted);">From: {{ req.start_node.name }}</div>
                 {% if req.matched_trip %}
-                <div style="font-size: 0.875rem; color: var(--text-muted);">Driver: {{ req.matched_trip.driver.username
-                    }}</div>
+                <div style="font-size: 0.875rem; color: var(--text-muted);">Driver: 
+                    {{ req.matched_trip.driver.username }}
+                </div>
                 {% endif %}
             </div>
         </div>

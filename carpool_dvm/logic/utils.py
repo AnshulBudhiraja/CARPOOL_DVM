@@ -1,7 +1,7 @@
 from collections import deque
 from roadmap.models import Edge, Node
 from .models import Trip, Carpool_request
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 
 def get_graph():
     edges = Edge.objects.all()
@@ -42,26 +42,6 @@ def shortest_path(start_node_id, end_node_id):
                 queue.append((neighbor, current_path + [neighbor]))
 
     return []
-
-
-# def find_requested_trips(Carpool_request):
-
-#     start_id = Carpool_request.start_node.id
-#     end_id = Carpool_request.end_node.id
-    
-#     active_trips = Trip.objects.filter(is_active = True, available_seats__gt = 0 )
-#     matching_trips = []
-
-#     for trip in active_trips:
-#         remaining_route_dicts = trip.route[trip.current_node_index:]
-#         remaining_ids = [node['id'] for node in remaining_route_dicts]
-
-#         if start_id in remaining_ids and end_id in remaining_ids:
-
-#             if remaining_ids.index(start_id) < remaining_ids.index(end_id):
-#                 matching_trips.append(trip)
-                
-#     return matching_trips
 
 
 def meeting_point(RideRequest, trip):
@@ -112,35 +92,141 @@ def meeting_point(RideRequest, trip):
 
 
 def potential_ride_requests(active_trip):
-    pending_requests = Carpool_request.objects.filter(status = "Pending")
+    # Include the current node so passengers at the driver's current stop are found
+    remaining_route = active_trip.route[active_trip.current_node_index:]
+    remaining_route_ids = set(node['id'] for node in remaining_route)
+
+    # Fetch ALL pending requests — the old start_node__id__in filter was too strict:
+    # it excluded passengers whose start_node is 1-2 hops off-route (off the exact
+    # route nodes), which meeting_point is specifically designed to handle.
+    pending_requests = Carpool_request.objects.filter(status="Pending").select_related(
+        'passenger', 'start_node', 'end_node'
+    )
     recommendations = []
 
-    route_map = {node['id'] : index for index, node in enumerate(active_trip.route)}
+    route_map = {node['id']: index for index, node in enumerate(active_trip.route)}
 
     for req in pending_requests:
         match_data = meeting_point(req, active_trip)
 
-        if match_data:
-            pickup_node_id = match_data["pickup"]["id"]
-            dropoff_node_id = match_data["dropoff"]["id"]
+        if not match_data:
+            continue
 
-            pickup_index = route_map[pickup_node_id]
-            dropoff_index = route_map[dropoff_node_id]
+        pickup_node_id = match_data["pickup"]["id"]
+        dropoff_node_id = match_data["dropoff"]["id"]
 
-            if (pickup_index < dropoff_index) and (pickup_index >= active_trip.current_node_index):
+        # Guard against nodes not in route_map
+        pickup_index = route_map.get(pickup_node_id)
+        dropoff_index = route_map.get(dropoff_node_id)
 
-                req.pickup_info = match_data["pickup"]
-                req.dropoff_info = match_data["dropoff"]
+        if pickup_index is None or dropoff_index is None:
+            continue
 
-                req.detour_hops = (match_data['pickup']['hops'] + match_data['dropoff']['hops']) * 2
-
-                recommendations.append(req)
+        # Pickup must be at/ahead of current stop, before dropoff, and still on remaining route
+        if (pickup_index < dropoff_index) and (pickup_index >= active_trip.current_node_index) and (pickup_node_id in remaining_route_ids):
+            req.pickup_info = match_data["pickup"]
+            req.dropoff_info = match_data["dropoff"]
+            req.detour_hops = (match_data['pickup']['hops'] + match_data['dropoff']['hops']) * 2
+            recommendations.append(req)
 
     return recommendations
 
 
 
-
-
-
+def passenger_route(carpool_request, trip):
     
+    start_node_id = carpool_request.start_node.id
+    end_node_id = carpool_request.end_node.id
+
+    if not carpool_request or not trip:
+        return []
+    
+    matched_route = trip.route
+
+    matched_route_ids = [node['id'] for node in matched_route]
+    nearest_nodes_in_matched_route = meeting_point(carpool_request, trip)
+
+    extra_route_ids_from_start = shortest_path(start_node_id, nearest_nodes_in_matched_route["pickup"]["id"])
+    extra_route_ids_from_end = shortest_path(nearest_nodes_in_matched_route["dropoff"]["id"], end_node_id)
+
+    start_idx = matched_route_ids.index(nearest_nodes_in_matched_route["pickup"]["id"])
+    end_idx = matched_route_ids.index(nearest_nodes_in_matched_route["dropoff"]["id"])
+    ride_segment_ids = matched_route_ids[start_idx : end_idx + 1]
+
+    passenger_route_ids = []
+    for id in extra_route_ids_from_start:
+        passenger_route_ids.append(id)
+
+    for id in ride_segment_ids[1:]:
+        passenger_route_ids.append(id)
+
+    for id in extra_route_ids_from_end[1:]:
+        passenger_route_ids.append(id)
+
+    passenger_route = []
+    passenger_route_nodes = Node.objects.filter(id__in = passenger_route_ids)
+    passenger_node_dict = {n.id : n.name for n in passenger_route_nodes}
+
+    for node_id in passenger_route_ids:
+        passenger_route.append({
+            "id" : node_id,
+            "name": passenger_node_dict.get(node_id, "Unknown Node")
+        })
+
+    return passenger_route
+        
+
+def passenger_fare(carpool_request, trip, base_fee, price_per_hop):
+    other_passengers_in_trip = trip.passengers.all()
+    passenger_route_nodes = passenger_route(carpool_request,trip)
+    passenger_route_nodes_ids = [node["id"] for node in passenger_route_nodes]
+
+    paying_passengers_per_node = [0] * len(passenger_route_nodes)
+
+    for passenger in other_passengers_in_trip:
+        other_passenger_request = Carpool_request.objects.filter(
+            passenger = passenger,
+            status__in = ['Confirmed','In Progress']
+        ).first()
+        other_passenger_route_nodes = passenger_route(other_passenger_request, trip)
+        other_passenger_route_nodes_ids = [node["id"] for node in other_passenger_route_nodes]
+        other_passenger_route_set = set(other_passenger_route_nodes_ids)
+
+        common_route = [node for node in passenger_route_nodes_ids if node in other_passenger_route_set]
+        
+        common_start_index = passenger_route_nodes_ids.index(common_route[0])
+        common_end_index = passenger_route_nodes_ids.index(common_route[-1])
+
+        if other_passenger_route_nodes_ids[-1] in common_route:
+            for i in range(common_start_index,common_end_index):
+                paying_passengers_per_node[i] += 1
+
+        elif other_passenger_route_nodes_ids[-1] not in common_route:
+            for i in range(common_start_index,common_end_index+1):
+                paying_passengers_per_node[i] += 1
+
+    for i in range(0,len(passenger_route_nodes)):
+        paying_passengers_per_node[i] += 1 
+
+    fare = price_per_hop * (sum(1.0/ni for ni in paying_passengers_per_node[:-1])) + base_fee
+
+    for i in range(0,meeting_point(carpool_request, trip)["pickup"]["hops"]):
+        if paying_passengers_per_node[i] == 1:
+            fare += price_per_hop
+
+    return fare
+
+
+
+        
+
+
+       
+
+        
+        
+
+
+
+
+        

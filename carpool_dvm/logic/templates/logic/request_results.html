@@ -1,6 +1,4 @@
-{% comment %} {% extends 'carpool_dvm/base.html' %} {% endcomment %}
 
-{% comment %} {% block title %}Ride Result | Carpool DVM{% endblock %} {% endcomment %}
 
 {% block extra_css %}
 <style>
@@ -12,63 +10,97 @@
 </style>
 {% endblock %}
 
-{% comment %} {% block content %} {% endcomment %}
 <div style="max-width: 640px; margin: 0 ;">
-    {% comment %} <a href="{% url 'home_passenger' %}"
-        style="display: inline-flex; align-items: center; gap: 0.4rem; color: var(--text-muted); text-decoration: none; font-size: 0.9rem; margin-bottom: 1.5rem;">
-        ← Back to Home
-    </a> {% endcomment %}
 
-    {% comment %} <h2 style="margin-bottom: 0.4rem;">
-        🚕 Ride Request Result
-    </h2> {% endcomment %}
     <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
         {{ ride_request.start_node.name }} → {{ ride_request.end_node.name }} &nbsp;·&nbsp;
         Requested {{ ride_request.created_at|date:"M d, Y • h:i A" }}
     </p>
 
-    {% if offers %}
-        {% for offer in offers %}
-        <div class="card" style="border-left: 4px solid var(--accent); padding: 1.25rem 1.5rem; margin-bottom: 1rem;">
-            <p
-                style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.75rem;">
-                ✅ Matched Ride
-            </p>
-            <div
-                style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
-                <div>
-                    <p style="font-weight: 700; font-size: 1.05rem; color: var(--text);">
-                        👤 {{ offer.driver.username }}
-                    </p>
-                    <p style="font-size: 0.875rem; color: var(--text-muted); margin-top: 0.3rem;">
-                        {{ offer.start_node.name }} → {{ offer.end_node.name }}
-                    </p>
-                    <p style="font-size: 0.875rem; color: var(--text-muted); margin-top: 0.2rem;">
-                        🕐 {{ offer.departure_time|date:"D, M j • h:i A" }}
-                    </p>
-                    <p style="font-size: 0.875rem; color: var(--text-muted); margin-top: 0.2rem;">
-                        💺 {{ offer.available_seats }} / {{ offer.max_passengers_trip }} seats available
-                    </p>
+    {% if ride_request.status == 'Pending' %}
+        {# Show all driver offers only while still pending #}
+        {% if offers %}
+            {% for offer in offers %}
+            <div class="card" style="border-left: 4px solid var(--accent); padding: 1.25rem 1.5rem; margin-bottom: 1rem;">
+                <p
+                    style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.75rem;">
+                    🚗 Ride Offer
+                </p>
+                <div
+                    style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+                    <div>
+                        <p style="font-weight: 700; font-size: 1.05rem; color: var(--text);">
+                            👤 {{ offer.trip.driver.username }}
+                        </p>
+                        <p style="font-size: 0.875rem; color: var(--text-muted); margin-top: 0.3rem;">
+                            {{ offer.trip.start_node.name }} → {{ offer.trip.end_node.name }}
+                        </p>
+                        <p style="font-size: 0.875rem; color: var(--text-muted); margin-top: 0.3rem;">
+                            {% for node in offer.route %}
+                            {{ node.name }} {% if not forloop.last %} → {% endif %}
+                            {% endfor %}
+                        </p>
+                        <p style="font-size: 0.875rem; color: var(--text-muted); margin-top: 0.2rem;">
+                            🕐 {{ offer.trip.departure_time|date:"D, M j • h:i A" }}
+                        </p>
+                        <p style="font-size: 0.875rem; color: var(--text-muted); margin-top: 0.2rem;">
+                            💺 {{ offer.trip.available_seats }} / {{ offer.trip.max_passengers_trip }} seats available
+                        </p>
+                        <p style="font-size: 0.875rem; font-weight: 700; color: var(--accent); margin-top: 0.4rem;">
+                            💰 Fare: ₹{{ offer.fare|floatformat:2 }}
+                        </p>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.6rem;">
+                        <span
+                            style="padding: 0.3rem 0.75rem; border-radius: 9999px; background: rgba(13,148,136,0.15); color: var(--primary); font-size: 0.8rem; font-weight: 700;">
+                            {{ ride_request.status }}
+                        </span>
+                        <form action="{% url 'accept_ride_view' trip_id=offer.trip.id %}" method="POST"
+                            onsubmit="const btn=this.querySelector('button');btn.disabled=true;btn.style.opacity='0.7';btn.style.cursor='not-allowed';btn.textContent='✅ Accepted';">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-primary"
+                                style="padding: 0.4rem 1rem; font-size: 0.85rem; white-space: nowrap;">
+                                ✅ Accept Ride
+                            </button>
+                        </form>
+                    </div>
                 </div>
-                <span
-                    style="padding: 0.3rem 0.75rem; border-radius: 9999px; background: rgba(13,148,136,0.15); color: var(--primary); font-size: 0.8rem; font-weight: 700; align-self: flex-start;">
-                    {{ ride_request.status }}
-                </span>
             </div>
+            {% endfor %}
+        {% else %}
+        <div class="card"
+            style="text-align: center; padding: 3rem 1.5rem; border: 1px dashed var(--border); background: rgba(30,41,59,0.5);">
+            <div style="font-size: 3rem; margin-bottom: 0.75rem;">⏳</div>
+            <h3 style="font-size: 1.2rem; margin-bottom: 0.5rem;">No match yet</h3>
+            <p style="color: var(--text-muted); max-width: 280px; margin: 0 auto 1.25rem;">
+                No driver has offered a ride for your route yet. Check back soon!
+            </p>
+            <a href="{% url 'request_trip_view' %}" class="btn btn-primary" style="text-decoration: none;">
+                Try a different route
+            </a>
         </div>
-        {% endfor %}
+        {% endif %}
+
     {% else %}
-    <div class="card"
-        style="text-align: center; padding: 3rem 1.5rem; border: 1px dashed var(--border); background: rgba(30,41,59,0.5);">
-        <div style="font-size: 3rem; margin-bottom: 0.75rem;">⏳</div>
-        <h3 style="font-size: 1.2rem; margin-bottom: 0.5rem;">No match yet</h3>
-        <p style="color: var(--text-muted); max-width: 280px; margin: 0 auto 1.25rem;">
-            No driver has offered a ride for your route yet. Check back soon!
-        </p>
-        <a href="{% url 'request_trip_view' %}" class="btn btn-primary" style="text-decoration: none;">
-            Try a different route
-        </a>
-    </div>
+        {# Ride accepted — show confirmed trip info only #}
+        {% if ride_request.confirmed_trip %}
+        <div class="card" style="border-left: 4px solid #22c55e; padding: 1.25rem 1.5rem; margin-bottom: 1rem;">
+            <p style="font-size: 0.75rem; font-weight: 700; color: #22c55e; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.75rem;">
+                ✅ Confirmed Ride
+            </p>
+            <p style="font-weight: 700; font-size: 1.05rem; color: var(--text);">
+                👤 {{ ride_request.confirmed_trip.driver.username }}
+            </p>
+            <p style="font-size: 0.875rem; color: var(--text-muted); margin-top: 0.3rem;">
+                {{ ride_request.confirmed_trip.start_node.name }} → {{ ride_request.confirmed_trip.end_node.name }}
+            </p>
+            <p style="font-size: 0.875rem; color: var(--text-muted); margin-top: 0.2rem;">
+                🕐 {{ ride_request.confirmed_trip.departure_time|date:"D, M j • h:i A" }}
+            </p>
+            <p style="font-size: 0.875rem; color: var(--text-muted); margin-top: 0.2rem;">
+                💺 {{ ride_request.confirmed_trip.available_seats }} / {{ ride_request.confirmed_trip.max_passengers_trip }} seats
+            </p>
+        </div>
+        {% endif %}
     {% endif %}
 </div>
-{% comment %} {% endblock %} {% endcomment %}

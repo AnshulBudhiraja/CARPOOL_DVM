@@ -5,6 +5,7 @@ from django.conf import settings
 
 class User(AbstractUser):
     phone_number = models.CharField(max_length=15, blank=True, null=True)
+    is_driver = models.BooleanField(default=False)
 
     def __str__(self):
         return self.username
@@ -15,6 +16,7 @@ class Driver(models.Model):
     car_model = models.CharField(max_length=100, help_text="e.g., Maruti Suzuki Swift")
     plate_number = models.CharField(max_length=20, help_text="e.g., RJ 18 XY 1234")
     max_passengers_car = models.IntegerField(default=4, help_text="Total empty seats available for passengers")
+    driver_password = models.CharField(max_length=128, null = True, blank= True)
 
     def __str__(self):
         return f"DRIVER : {self.user.username} with CAR: {self.car_model}"

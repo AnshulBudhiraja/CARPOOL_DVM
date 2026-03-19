@@ -18,6 +18,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from . import views
+import api_views
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -26,5 +27,5 @@ urlpatterns = [
     path("", include("logic.urls")),
     path("home_driver/", views.home_driver, name="home_driver"),
     path("home_passenger/", views.home_passenger, name="home_passenger"),
-    
+    path("api/update-location/", api_views.update_driver_location_api, name="update_driver_location_api"),
 ]

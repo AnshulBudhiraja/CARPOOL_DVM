@@ -1,9 +1,13 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import login
-from .forms import DriverSetUpForm, UserSignupForm
+from .forms import DriverSetUpForm, UserSignupForm, DriverLoginForm
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.forms import AuthenticationForm
+from django.http import HttpResponse
+from .models import User, Driver
+
+from django.contrib import messages
 # Create your views here.
 
 def signup_view(request):
@@ -21,10 +25,21 @@ def signup_view(request):
 def driver_signup_view(request):
     if request.method == 'POST':
         form = DriverSetUpForm(request.POST)
+        d_pass = request.POST.get('driver_password')
+        if not d_pass:
+            return HttpResponse("You must set a password to become a driver!")
         if form.is_valid():
-            my_object = form.save(commit=False)
-            my_object.user = request.user
-            my_object.save()
+            current_user = request.user
+            current_user.is_driver = True
+            current_user.save(update_fields=['is_driver'])
+
+            driver_obj = form.save(commit=False)
+            driver_obj.user = current_user
+            driver_obj.driver_password = d_pass 
+            driver_obj.save()
+            
+            login(request,current_user)
+
             return redirect('home_driver')
     else:
         form = DriverSetUpForm()
@@ -47,5 +62,19 @@ def login_view(request):
 def logout_view(request):
     logout(request)
     return redirect('home')
+
+
+def driver_login_view(request):
+    if request.method == 'POST':
+        form = DriverLoginForm(request.POST)
+        if form.is_valid():
+            user = form.user
+            login(request, user)
+            return redirect('home_driver')
+        
+    else:
+        form = DriverLoginForm()
+    return render(request, 'users/driver_login.html', {'form' : form})
+
 
     

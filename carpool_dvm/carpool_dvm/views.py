@@ -3,7 +3,7 @@ from django.shortcuts import render, redirect
 from logic.models import Trip, Carpool_request
 from roadmap.models import Node
 from django.utils import timezone
-from logic.utils import potential_ride_requests
+from logic.utils import potential_ride_requests, passenger_route , passenger_fare
 
 def home(request):
     return render(request, 'carpool_dvm/home.html')
@@ -12,28 +12,48 @@ def home(request):
 def home_passenger(request):
     active_requests = Carpool_request.objects.filter(
         passenger=request.user,
-        status__in=['Pending', 'Matched']
-    ).order_by('-created_at')
+        status__in=['Pending','Confirmed']
+    ).order_by('-created_at').first()
 
     past_requests = Carpool_request.objects.filter(
         passenger=request.user,
         status__in=['Completed', 'Cancelled']
     ).order_by('-created_at')
-    # invites = []
-    # invites = active_requests.matched_trip.all()
+
+    carpool_request = Carpool_request.objects.filter(
+        passenger = request.user
+    ).all()
 
     context = {
-        'active_requests': active_requests,
+        'req': active_requests,
         'past_requests': past_requests,
-        # 'invites': invites
     }
+
+    if active_requests:
+        matched_trips = active_requests.matched_trip.all()
+
+        offers = []
+        for trip in matched_trips:
+            path = passenger_route(active_requests,trip)
+            trip_fare = passenger_fare(active_requests, trip , 100 , 200)
+            offers.append(
+                {
+                    "trip" : trip,
+                    "route" : path,
+                    "fare" : trip_fare
+                }
+            )
+
+        context['offers'] = offers
+    
+
     return render(request, 'carpool_dvm/home_passenger.html', context)
 
 
 @login_required
 def home_driver(request):
-    active_trip = Trip.objects.filter(driver=request.user, is_active=True).order_by('-created_at').first()
-    past_trips = Trip.objects.filter(driver=request.user, is_active=False).order_by('-created_at')
+    active_trip = Trip.objects.filter(driver=request.user, is_active=True, status__in = ['Active','In Progress']).order_by('-created_at').first()
+    past_trips = Trip.objects.filter(driver=request.user, is_active=False, status__in = ['Completed', 'Cancelled']).order_by('-created_at')
 
     potential_trips = []
     if active_trip:
