@@ -1,0 +1,19 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      - POSTGRES_DB=Carpool_DVM
+      - POSTGRES_USER=Anshul_Budhiraja
+      - POSTGRES_PASSWORD=Anshul@1804
+    ports:
+      - "5432:5432"
+
+  web:
+    build: .
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app  # This "Hot-Reloads" your code
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db

@@ -25,7 +25,9 @@ urlpatterns = [
     path("home/", views.home, name="home"),
     path("", include("users.urls")),
     path("", include("logic.urls")),
+    path("", include("Wallet.urls")),
     path("home_driver/", views.home_driver, name="home_driver"),
     path("home_passenger/", views.home_passenger, name="home_passenger"),
     path("api/update-location/", api_views.update_driver_location_api, name="update_driver_location_api"),
+    path('accounts/', include('allauth.urls'))
 ]

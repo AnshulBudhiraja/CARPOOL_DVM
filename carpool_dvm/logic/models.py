@@ -66,23 +66,7 @@ class Carpool_request(models.Model):
 
     final_route = models.JSONField(null=True, blank=True)
     confirmed_trip = models.ForeignKey(Trip, null=True, blank=True, on_delete=models.SET_NULL)
-
-    # def clean(self):
-    #     if not hasattr(self, 'passenger') or self.passenger is None:
-    #         return
-    #     # Logic to prevent multiple active rides
-    #     active_statuses = ['Pending', 'Matched', 'Confirmed']
-    #     exists = Carpool_request.objects.filter(
-    #         passenger=self.passenger, 
-    #         status__in=active_statuses
-    #     ).exclude(id = self.id).exists()
-        
-    #     if exists:
-    #         raise ValidationError("You already have an active ride request. Please cancel it before making a new one.")
-    
-    # def save(self, *args, **kwargs):
-    #     self.full_clean() 
-    #     super().save(*args, **kwargs)
+    trip_fare = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
 
     def __str__(self):
         return f"{self.passenger} requested to go : {self.start_node} --> {self.end_node} . The request is {self.status}"

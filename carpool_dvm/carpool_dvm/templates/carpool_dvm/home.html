@@ -195,45 +195,58 @@
             <p style="color: var(--text-muted);">{{ user.email|default:"no-email@example.com" }}</p>
             <div style="margin-top: 1rem; display: flex; gap: 1rem;">
                 <div class="card" style="padding: 0.75rem; text-align: center; flex: 1;">
-                    <div style="font-size: 1.5rem; font-weight: 700;">12</div>
-                    <div style="font-size: 0.75rem; color: var(--text-muted);">Total Rides</div>
+                    <div style="font-size: 1.25rem; font-weight: 700;">{{ past_rides.count }}</div>
+                    <div style="font-size: 0.7rem; color: var(--text-muted);">Rides</div>
                 </div>
                 <div class="card" style="padding: 0.75rem; text-align: center; flex: 1;">
-                    <div style="font-size: 1.5rem; font-weight: 700;">4.9</div>
-                    <div style="font-size: 0.75rem; color: var(--text-muted);">Rating</div>
+                    <div style="font-size: 1.25rem; font-weight: 700;">4.9</div>
+                    <div style="font-size: 0.7rem; color: var(--text-muted);">Rating</div>
+                </div>
+                <div class="card" style="padding: 0.75rem; text-align: center; flex: 1;">
+                    <div style="font-size: 1.25rem; font-weight: 700;">₹{{ user.wallet.balance|default:"0.00" }}</div>
+                    <div style="font-size: 0.7rem; color: var(--text-muted);">Wallet</div>
                 </div>
             </div>
+            <a href="{% url 'wallet_dashboard' %}" class="btn btn-primary" style="margin-top: 1.5rem; width: 100%;">
+                <span>💳</span> Manage Wallet
+            </a>
         </div>
     </div>
 </div>
 
 <div id="trips" class="tab-content" style="margin-top: 2rem;">
     <div class="trip-list">
-        <!-- Driver Trip Example -->
+        {% for trip in past_trips %}
         <div class="card trip-card">
             <div>
                 <span class="badge badge-driver">Driver</span>
-                <h3 style="margin-top: 0.5rem;">To: BITS Campus</h3>
-                <p style="font-size: 0.875rem; color: var(--text-muted);">Feb 24, 2026 • 09:30 AM</p>
+                <h3 style="margin-top: 0.5rem;">To: {{ trip.end_node.name }}</h3>
+                <p style="font-size: 0.875rem; color: var(--text-muted);">{{ trip.departure_time|date:"M d, Y • H:i" }}</p>
             </div>
             <div style="text-align: right;">
                 <div style="font-weight: 700; color: var(--accent);">Completed</div>
-                <div style="font-size: 0.875rem; color: var(--text-muted);">3 Passengers</div>
+                <div style="font-size: 0.875rem; color: var(--text-muted);">{{ trip.passengers.count }} Passengers</div>
             </div>
         </div>
+        {% endfor %}
 
-        <!-- Passenger Trip Example -->
+        {% for ride in past_rides %}
         <div class="card trip-card passenger">
             <div>
                 <span class="badge badge-passenger">Passenger</span>
-                <h3 style="margin-top: 0.5rem;">To: Railway Station</h3>
-                <p style="font-size: 0.875rem; color: var(--text-muted);">Feb 22, 2026 • 04:15 PM</p>
+                <h3 style="margin-top: 0.5rem;">To: {{ ride.end_node.name }}</h3>
+                <p style="font-size: 0.875rem; color: var(--text-muted);">{{ ride.created_at|date:"M d, Y • H:i" }}</p>
             </div>
             <div style="text-align: right;">
                 <div style="font-weight: 700; color: var(--accent);">Completed</div>
-                <div style="font-size: 0.875rem; color: var(--text-muted);">Driver: Aryan</div>
+                <div style="font-size: 0.875rem; color: var(--text-muted);">Driver: {{ ride.confirmed_trip.driver.username }}</div>
             </div>
         </div>
+        {% endfor %}
+
+        {% if not past_trips and not past_rides %}
+        <p style="text-align: center; color: var(--text-muted); padding: 2rem;">No previous trips or rides found.</p>
+        {% endif %}
     </div>
 </div>
 

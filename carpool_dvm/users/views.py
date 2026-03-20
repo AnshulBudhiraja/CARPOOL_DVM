@@ -38,7 +38,7 @@ def driver_signup_view(request):
             driver_obj.driver_password = d_pass 
             driver_obj.save()
             
-            login(request,current_user)
+            login(request,current_user,backend='django.contrib.auth.backends.ModelBackend')
 
             return redirect('home_driver')
     else:
@@ -69,7 +69,7 @@ def driver_login_view(request):
         form = DriverLoginForm(request.POST)
         if form.is_valid():
             user = form.user
-            login(request, user)
+            login(request, user,backend='django.contrib.auth.backends.ModelBackend')
             return redirect('home_driver')
         
     else:

@@ -5,8 +5,23 @@ from roadmap.models import Node
 from django.utils import timezone
 from logic.utils import potential_ride_requests, passenger_route , passenger_fare
 
+@login_required
 def home(request):
-    return render(request, 'carpool_dvm/home.html')
+    prev_trips = Trip.objects.filter(
+        driver = request.user,
+        status = 'Completed'
+    ).all()
+    
+    prev_rides = Carpool_request.objects.filter(
+        passenger=request.user,
+        status = 'Completed'
+    ).all()
+
+    context = {
+        "past_trips" : prev_trips,
+        "past_rides" : prev_rides
+    }
+    return render(request, 'carpool_dvm/home.html', context)
 
 
 def home_passenger(request):

@@ -3,24 +3,36 @@ from django.contrib.auth.decorators import login_required
 from .forms import CreateTripForm, RequestTripForm
 from django.contrib import messages
 from .models import Trip, Carpool_request
-from .utils import shortest_path, passenger_route
+from .utils import shortest_path, passenger_route, passenger_fare
 from roadmap.models import  Node
 from django.utils import timezone
 from datetime import timedelta
+from Wallet.models import Wallet, Transaction
 
 @login_required
 def publish_trip_view(request):
     if not hasattr(request.user, "driver"):
         return redirect('driver_signup_view')
+    
     active_trip_exists = Trip.objects.filter(
         driver = request.user,
         status__in = ['Active', 'In Progress']
     ).exists()
 
+    carpool_req = Carpool_request.objects.filter(
+        passenger = request.user,
+        status__in = ['Pending', 'Confirmed', 'In Progress']
+    ).exists()
+
+    if carpool_req:
+        messages.error(request, "You have a ride ongoing. Please complete it before starting a trip.")
+        return redirect('home_driver')
+
     if active_trip_exists:
         messages.error(request, "You already have an ongoing trip! Please complete it before starting a new one.") 
+        return redirect('home_driver')
 
-    if request.method == 'POST':
+    if request.method == 'POST' :
         form = CreateTripForm(request.POST)
         if form.is_valid():
             trip = form.save(commit=False)
@@ -157,20 +169,39 @@ def accept_ride_view(request, trip_id):
             status = 'Pending',
             matched_trip = accepted_trip
         ).first()
+
         if carpool_req.confirmed_trip:
             messages.error(request, "You have already accepted a ride!")
 
-        if carpool_req:
-            carpool_req.confirmed_trip = accepted_trip
-            carpool_req.final_route = passenger_route(carpool_req, accepted_trip)
-            carpool_req.status = 'Confirmed'
+        if carpool_req and not carpool_req.confirmed_trip :
+            user_wallet = request.user.wallet
+            fare = passenger_fare(carpool_req,accepted_trip,100,200)
+            if user_wallet.balance < fare :
+                messages.error(request, "You do not have adequate wallet balance for the trip.")
+                return redirect('wallet_dashboard')
 
-            accepted_trip.available_seats -= 1
-            accepted_trip.passengers.add(request.user)
+            elif user_wallet.balance >= fare:
 
-            accepted_trip.save()
-            carpool_req.save()
-            messages.success(request, f"Ride accepted! Driver : {accepted_trip.driver}")
+                carpool_req.confirmed_trip = accepted_trip
+                carpool_req.final_route = passenger_route(carpool_req, accepted_trip)
+                
+                carpool_req.status = 'Confirmed'
+
+                accepted_trip.available_seats -= 1
+                accepted_trip.passengers.add(request.user)
+
+                user_wallet.balance -= fare
+                Transaction.objects.create(
+                    wallet = user_wallet,
+                    amount = fare,
+                    trx_type = 'RIDE_FARE',
+                    description = f"Ride from {carpool_req.start_node} to {carpool_req.end_node}"
+                )
+                user_wallet.save()
+                accepted_trip.save()
+                carpool_req.save()
+
+                messages.success(request, f"Ride accepted! Driver : {accepted_trip.driver}. Fare amount {fare} deducted from Wallet")
 
         else:
             messages.error(request, " You don't have a pending request")
