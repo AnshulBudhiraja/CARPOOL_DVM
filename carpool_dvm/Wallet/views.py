@@ -21,4 +21,4 @@ def wallet_dashboard_view(request):
             messages.success(request, f"{amount} added to your wallet!")
         return redirect('wallet_dashboard')
     
-    return render(request, 'wallet/wallet_dashboard.html', {"wallet": wallet})
+    return render(request, 'Wallet/wallet_dashboard.html', {"wallet": wallet})
