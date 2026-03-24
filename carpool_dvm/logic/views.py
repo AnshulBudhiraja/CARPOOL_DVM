@@ -90,9 +90,11 @@ def cancel_trip_view(request, trip_id):
 
 @login_required
 def request_trip_view(request):
+    buffer_time = timezone.now() - timedelta(hours=1)
     active_req_exists = Carpool_request.objects.filter(
         passenger = request.user,
-        status = 'Matched'
+        status__in = ['Confirmed', 'Pending'],
+        request_time__gt = buffer_time 
     ).exists()
 
     active_trip_exists = Trip.objects.filter(
@@ -215,6 +217,9 @@ def start_trip_view(request, trip_id):
         trip.status = 'In Progress' 
         trip.save()
         messages.success(request, "Trip started! Drive safely to your destination.")
+
+    elif timezone.now() < trip.departure_time:
+        messages.error(request, "You cannot start the trip before departure time")
 
     else:
         messages.error(request, "Trip cannot be started (it might be already running or completed)")

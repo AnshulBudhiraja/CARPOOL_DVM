@@ -54,6 +54,8 @@ class Carpool_request(models.Model):
     start_node = models.ForeignKey(Node, on_delete=models.CASCADE, related_name="passenger_trip_start")
     end_node = models.ForeignKey(Node, on_delete=models.CASCADE, related_name="passenger_trip_end")
 
+    request_time = models.DateTimeField(default=timezone.now)
+
     matched_trip = models.ManyToManyField(
         Trip,
         blank=True,

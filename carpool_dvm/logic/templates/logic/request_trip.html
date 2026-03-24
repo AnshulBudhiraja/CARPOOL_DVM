@@ -166,6 +166,15 @@
                 {% endif %}
             </div>
 
+            <div class="form-group">
+                <label for="{{ form.request_time.id_for_label }}">Boarding Time</label>
+                {{ form.request_time }}
+                {% if form.request_time.errors %}
+                <span style="color: var(--danger); font-size: 0.875rem; display: block; margin-top: 0.5rem;">{{
+                    form.request_time.errors.0 }}</span>
+                {% endif %}
+            </div>
+
             <button type="button" class="btn estimate-btn" id="estimate-fare-btn">
                 <span>🧮</span> Estimate Fare
             </button>

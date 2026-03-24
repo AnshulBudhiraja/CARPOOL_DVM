@@ -22,10 +22,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = "django-insecure-+0dg02_%f7!2b(jku5prlmzwpyoo)hzdfc0%y2e4p=$afdnpoz"
 
-# SECURITY WARNING: don't run with debug turned on in production!
+# # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+# ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -49,7 +49,7 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.google',
 ]
 
-SITE_ID = 3
+SITE_ID = 2
 
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
@@ -147,21 +147,34 @@ STATIC_ROOT = '/app/staticfiles'
 AUTH_USER_MODEL = 'users.User'
 
 
-import os
+# import os
 
-SECRET_KEY = os.environ.get("SECRET_KEY")
+# STATIC_URL = '/static/'
+# STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-DEBUG = int(os.environ.get("DEBUG", default=0))
+# MEDIA_URL = '/media/'
+# MEDIA_ROOT = os.path.join(BASE_DIR, 'mediafiles')
 
-ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "").split(" ")
+# SECRET_KEY = os.environ.get("SECRET_KEY")
+
+# DEBUG = int(os.environ.get("DEBUG", default=0))
+
+# ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "").split(" ")
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': os.environ.get("SQL_ENGINE"),
+#         'NAME': os.environ.get("SQL_DATABASE",BASE_DIR / 'db.sqlite3'),
+#         'USER': os.environ.get("SQL_USER"),
+#         'PASSWORD': os.environ.get("SQL_PASSWORD"),
+#         'HOST': os.environ.get("SQL_HOST"),
+#         'PORT': os.environ.get("SQL_PORT"),
+#     }
+# }
 
 DATABASES = {
     'default': {
-        'ENGINE': os.environ.get("SQL_ENGINE"),
-        'NAME': os.environ.get("SQL_DATABASE"),
-        'USER': os.environ.get("SQL_USER"),
-        'PASSWORD': os.environ.get("SQL_PASSWORD"),
-        'HOST': os.environ.get("SQL_HOST"),
-        'PORT': os.environ.get("SQL_PORT"),
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }

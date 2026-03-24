@@ -6,7 +6,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
-.env
+.env*
 .venv
 env/
 venv/
@@ -14,7 +14,7 @@ ENV/
 
 # Docker
 Dockerfile
-docker-compose*.yml
+docker-compose.yml
 .dockerignore
 
 # Django

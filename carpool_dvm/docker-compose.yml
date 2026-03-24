@@ -1,15 +1,23 @@
 services:
   db:
     image: postgres:16
-    environment:
-      - POSTGRES_DB=Carpool_DVM
-      - POSTGRES_USER=Anshul_Budhiraja
-      - POSTGRES_PASSWORD=Anshul@1804
+    env_file:
+      - .env.prod
+    volumes:
+    - postgres_data:/var/lib/postgresql/data
+    # environment:
+    #   - POSTGRES_DB=${POSTGRES_DB}
+    #   - POSTGRES_USER=${POSTGRES_USER}
+    #   - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
 
   web:
     build: .
+    env_file:
+      - .env.prod
+    # environment:
+    #   - DEBUG=${DEBUG}
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - .:/app  # This "Hot-Reloads" your code
@@ -17,3 +25,30 @@ services:
       - "8000:8000"
     depends_on:
       - db
+
+  pgadmin:
+    image: dpage/pgadmin4
+    env_file:
+      - .env.prod
+    # environment:
+    #   - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL}
+    #   - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD}
+    ports:
+      - "5050:80"  # This maps pgAdmin to port 5050 on your browser
+    depends_on:
+      - db
+
+  nginx:
+    build: ./nginx
+    ports:
+      - "80:80"
+    volumes:
+      - static_volume:/app/staticfiles
+      - media_volume:/app/mediafiles
+    depends_on:
+      - web
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:

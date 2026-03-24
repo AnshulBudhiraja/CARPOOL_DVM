@@ -2,6 +2,7 @@ from collections import deque
 from roadmap.models import Edge, Node
 from .models import Trip, Carpool_request
 from django.shortcuts import render, get_object_or_404
+from datetime import timedelta
 
 def get_graph():
     edges = Edge.objects.all()
@@ -44,13 +45,11 @@ def shortest_path(start_node_id, end_node_id):
     return []
 
 
-def meeting_point(RideRequest, trip):
+def meeting_point(RideRequest, route_ids):
     """
     Finds the intersection points for Start and End nodes.
     Returns: Dict containing the meeting node ID and the 'cost' (hops).
     """
-
-    route_ids = {node['id'] for node in trip.route}
 
     def find_best_connection(target_node):
         """
@@ -59,7 +58,7 @@ def meeting_point(RideRequest, trip):
         """
         # --- LAYER 0: Direct Match (0 Hops) ---
         if target_node.id in route_ids:
-            return {'id': target_node.id, 'hops': 0}
+             return {'id': target_node.id, 'hops': 0}
 
         # --- LAYER 1: Immediate Neighbors (1 Hop) ---
         first_layer_neighbors = target_node.adjacent_nodes.all()
@@ -92,14 +91,23 @@ def meeting_point(RideRequest, trip):
 
 
 def potential_ride_requests(active_trip):
-    # Include the current node so passengers at the driver's current stop are found
+   
     remaining_route = active_trip.route[active_trip.current_node_index:]
     remaining_route_ids = set(node['id'] for node in remaining_route)
+    route_proximal_region_ids = set(remaining_route_ids)
+    
+    layer1_neighbors = Node.objects.filter(
+        adjacent_nodes__id__in = remaining_route_ids
+    ).values_list('id', flat=True)
+    route_proximal_region_ids.update(layer1_neighbors)
 
-    # Fetch ALL pending requests — the old start_node__id__in filter was too strict:
-    # it excluded passengers whose start_node is 1-2 hops off-route (off the exact
-    # route nodes), which meeting_point is specifically designed to handle.
-    pending_requests = Carpool_request.objects.filter(status="Pending").select_related(
+    layer2_neighbors = Node.objects.filter(
+        adjacent_nodes__id__in = layer1_neighbors
+    ).values_list('id', flat=True)
+    route_proximal_region_ids.update(layer2_neighbors)
+
+
+    pending_requests = Carpool_request.objects.filter(status="Pending", request_time__lte = active_trip.departure_time, start_node__id__in = route_proximal_region_ids, end_node__id__in = route_proximal_region_ids).select_related(
         'passenger', 'start_node', 'end_node'
     )
     recommendations = []
@@ -107,10 +115,7 @@ def potential_ride_requests(active_trip):
     route_map = {node['id']: index for index, node in enumerate(active_trip.route)}
 
     for req in pending_requests:
-        match_data = meeting_point(req, active_trip)
-
-        if not match_data:
-            continue
+        match_data = meeting_point(req, remaining_route_ids)
 
         pickup_node_id = match_data["pickup"]["id"]
         dropoff_node_id = match_data["dropoff"]["id"]
@@ -144,7 +149,10 @@ def passenger_route(carpool_request, trip):
     matched_route = trip.route
 
     matched_route_ids = [node['id'] for node in matched_route]
-    nearest_nodes_in_matched_route = meeting_point(carpool_request, trip)
+    remaining_route = trip.route[trip.current_node_index:]
+    remaining_route_ids = [node['id'] for node in remaining_route]
+
+    nearest_nodes_in_matched_route = meeting_point(carpool_request, remaining_route_ids)
 
     extra_route_ids_from_start = shortest_path(start_node_id, nearest_nodes_in_matched_route["pickup"]["id"])
     extra_route_ids_from_end = shortest_path(nearest_nodes_in_matched_route["dropoff"]["id"], end_node_id)
@@ -174,12 +182,15 @@ def passenger_route(carpool_request, trip):
         })
 
     return passenger_route
-        
+
 
 def passenger_fare(carpool_request, trip, base_fee, price_per_hop):
     other_passengers_in_trip = trip.passengers.all()
     passenger_route_nodes = passenger_route(carpool_request,trip)
     passenger_route_nodes_ids = [node["id"] for node in passenger_route_nodes]
+
+    remaining_route = trip.route[trip.current_node_index:]
+    remaining_route_ids = [node['id'] for node in remaining_route]
 
     paying_passengers_per_node = [0] * len(passenger_route_nodes)
 
@@ -210,23 +221,8 @@ def passenger_fare(carpool_request, trip, base_fee, price_per_hop):
 
     fare = price_per_hop * (sum(1.0/ni for ni in paying_passengers_per_node[:-1])) + base_fee
 
-    for i in range(0,meeting_point(carpool_request, trip)["pickup"]["hops"]):
+    for i in range(0,meeting_point(carpool_request, remaining_route_ids)["pickup"]["hops"]):
         if paying_passengers_per_node[i] == 1:
             fare += price_per_hop
 
     return fare
-
-
-
-        
-
-
-       
-
-        
-        
-
-
-
-
-        

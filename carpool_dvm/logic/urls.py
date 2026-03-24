@@ -12,5 +12,4 @@ urlpatterns = [
     path("end_trip/<int:trip_id>", views.end_trip_view, name="end_trip_view"),
     path("start_ride/<int:req_id>", views.start_ride_view, name="start_ride_view"),
     path("end_ride/<int:req_id>", views.end_ride_view, name="end_ride_view"),
-
 ]
