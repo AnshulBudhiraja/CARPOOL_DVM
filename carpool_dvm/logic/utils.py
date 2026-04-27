@@ -58,21 +58,23 @@ def meeting_point(RideRequest, route_ids):
         """
         # --- LAYER 0: Direct Match (0 Hops) ---
         if target_node.id in route_ids:
-             return {'id': target_node.id, 'hops': 0}
+             return {'id': target_node.id, 'hops': 0, 'name': target_node.name}
 
         # --- LAYER 1: Immediate Neighbors (1 Hop) ---
         first_layer_neighbors = target_node.adjacent_nodes.all()
         
         for neighbor in first_layer_neighbors:
             if neighbor.id in route_ids:
-                return {'id': neighbor.id, 'hops': 1}
+                node = get_object_or_404(Node, id=neighbor.id)
+                return {'id': neighbor.id, 'hops': 1, 'name': node.name}
 
         # --- LAYER 2: Neighbors of Neighbors (2 Hops) ---
         for neighbor in first_layer_neighbors:
             # FIX: Use 'neighbor' loop correctly here
             for second_neighbor in neighbor.adjacent_nodes.all():
                 if second_neighbor.id in route_ids:
-                    return {'id': second_neighbor.id, 'hops': 2}
+                    node = get_object_or_404(Node, id=second_neighbor.id)
+                    return {'id': second_neighbor.id, 'hops': 2, 'name': node.name }
         
         return None
 

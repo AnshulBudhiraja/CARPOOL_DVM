@@ -416,6 +416,9 @@
                         <p style="font-size: 0.75rem; color: #fb7185; margin-top: 0.2rem;">
                             📍 Detour: {{ req.detour_hops }} hop(s)
                         </p>
+                        <p style="font-size: 0.7rem; color: #fb7185; margin-top: 0.1rem;">
+                            Path: {{ req.pickup_info.name }} → {{ req.start_node.name }} and {{ req.dropoff_info.name }} → {{ req.end_node.name }}
+                        </p>
                         {% endif %}
                     </div>
                     <form action="{% url 'offer_ride_view' req_id=req.id %}" method="POST"
